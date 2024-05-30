@@ -23,7 +23,7 @@ class CharacterBean(gameView: GameView){
             isHideFlag = false
         } else {
             canvas.drawBitmap(
-                gameView.characterBitmap!!,
+                gameView.characterHideBitmap!!,
                 gameView.characterPosX.toFloat(),
                 gameView.characterPosY.toFloat(),
                 Paint()

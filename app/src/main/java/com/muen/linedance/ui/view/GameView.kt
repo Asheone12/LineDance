@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
 import android.util.AttributeSet
-import android.util.Log
 import android.view.MotionEvent
 import android.view.SurfaceHolder
 import android.view.SurfaceView
@@ -42,7 +41,7 @@ class GameView @JvmOverloads constructor(
     private var pauseBGBitmap: Bitmap? = null
     private var gameBgBitmap: Bitmap? = null
     var characterBitmap: Bitmap? = null
-    private var characterHideBitmap: Bitmap? = null
+    var characterHideBitmap: Bitmap? = null
     private var gameOverBitmap: Bitmap? = null
 
     private var paint: Paint? = null
@@ -246,7 +245,6 @@ class GameView @JvmOverloads constructor(
             systemSecondCurrent += 60
         }
         threadStart()
-    //drawReadyScene(canvas)
     }
 
     fun recycleBitmap() {
@@ -335,7 +333,6 @@ class GameView @JvmOverloads constructor(
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         //当surfaceView创建的时候，所有的线程开始运行
-        Log.d("123","surfaceCreated")
         if (thread != null) {
             thread?.setFlag(true)
             thread?.start()
