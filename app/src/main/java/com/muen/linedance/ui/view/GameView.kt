@@ -40,7 +40,6 @@ class GameView @JvmOverloads constructor(
     private var timeBitmap: Bitmap? = null
     private var pauseButtonBitmap: Bitmap? = null
     private var pauseBGBitmap: Bitmap? = null
-    private var readyBitmap = arrayOfNulls<Bitmap>(3)
     private var gameBgBitmap: Bitmap? = null
     var characterBitmap: Bitmap? = null
     private var characterHideBitmap: Bitmap? = null
@@ -55,7 +54,6 @@ class GameView @JvmOverloads constructor(
     private var breakRecordFlag = false     //破记录标识
     private var pauseFlag = false           //游戏暂停标识
     private var gameOverFlag = false        //游戏结束标识
-    private var readyPicRecycleFlag = false    //回收图片标识
 
     private val wm = getContext().getSystemService(Context.WINDOW_SERVICE) as WindowManager
     val screenWidth: Int = wm.defaultDisplay.width
@@ -94,7 +92,6 @@ class GameView @JvmOverloads constructor(
         //初始化标识
         pauseFlag = false
         gameOverFlag = false
-        readyPicRecycleFlag = false
         bgMusicFlag = false
         breakRecordFlag = false
 
@@ -119,21 +116,6 @@ class GameView @JvmOverloads constructor(
         paint = Paint()
         val opts = BitmapFactory.Options()
         opts.inSampleSize = 3
-        readyBitmap[0] = BitmapUtil.resizeBitmap(
-            BitmapFactory.decodeResource(resources, R.drawable.ready1),
-            100,
-            270
-        )
-        readyBitmap[1] = BitmapUtil.resizeBitmap(
-            BitmapFactory.decodeResource(resources, R.drawable.ready2),
-            180,
-            270
-        )
-        readyBitmap[2] = BitmapUtil.resizeBitmap(
-            BitmapFactory.decodeResource(resources, R.drawable.ready3),
-            180,
-            270
-        )
         gameBgBitmap = BitmapUtil.resizeBitmap(
             BitmapFactory.decodeResource(resources, R.drawable.bg, opts),
             screenWidth,
@@ -263,49 +245,8 @@ class GameView @JvmOverloads constructor(
         if (systemSecondCurrent < systemSecondStart) {
             systemSecondCurrent += 60
         }
-        drawReadyScene(canvas)
-    }
-
-    private fun drawReadyScene(canvas: Canvas) {
-        if (!readyPicRecycleFlag && systemSecondCurrent - systemSecondStart <= 3) {
-            val readyPaint = Paint()
-            if (systemSecondCurrent - systemSecondStart <= 1) {
-                canvas.drawBitmap(
-                    readyBitmap[2]!!,
-                    (screenWidth / 2 - 90).toFloat(),
-                    (screenHeight / 2 - 135).toFloat(),
-                    readyPaint
-                )
-            } else if (systemSecondCurrent - systemSecondStart <= 2) {
-                canvas.drawBitmap(
-                    readyBitmap[1]!!,
-                    (screenWidth / 2 - 90).toFloat(),
-                    (screenHeight / 2 - 135).toFloat(),
-                    readyPaint
-                )
-            } else if (systemSecondCurrent - systemSecondStart <= 3) {
-                canvas.drawBitmap(
-                    readyBitmap[0]!!,
-                    (screenWidth / 2 - 90).toFloat(),
-                    (screenHeight / 2 - 135).toFloat(),
-                    readyPaint
-                )
-            }
-        }
-        if (systemSecondCurrent - systemSecondStart == 4) {
-            if (!readyPicRecycleFlag) {
-                recycleReadyBitmap()
-                threadStart()
-            }
-        }
-    }
-
-    private fun recycleReadyBitmap() {
-        readyBitmap[0]!!.recycle()
-        readyBitmap[1]!!.recycle()
-        readyBitmap[2]!!.recycle()
-        readyPicRecycleFlag = true
-        System.gc()
+        threadStart()
+    //drawReadyScene(canvas)
     }
 
     fun recycleBitmap() {
@@ -362,7 +303,6 @@ class GameView @JvmOverloads constructor(
         systemSecondStart = getSystemCurrentSecond()
         gameOverFlag = false
         characterFlag = true
-        readyPicRecycleFlag = false
         breakRecordFlag = false
         resume()
     }
@@ -395,6 +335,7 @@ class GameView @JvmOverloads constructor(
 
     override fun surfaceCreated(holder: SurfaceHolder) {
         //当surfaceView创建的时候，所有的线程开始运行
+        Log.d("123","surfaceCreated")
         if (thread != null) {
             thread?.setFlag(true)
             thread?.start()
