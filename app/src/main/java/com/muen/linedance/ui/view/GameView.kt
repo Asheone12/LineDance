@@ -319,6 +319,22 @@ class GameView @JvmOverloads constructor(
         pauseFlag = false
     }
 
+    fun destroy(){
+        if (thread != null) {
+            thread?.setFlag(false)
+        }
+        moveThread?.setNonEndFlag(false)
+        moveThread?.interrupt()
+
+        generateLineThread?.setNonEndFlag(true)
+        generateLineThread?.interrupt()
+
+        characterFlag = false
+        timeThread?.setNonEndFlag(false)
+        timeThread?.interrupt()
+
+        recycleBitmap()
+    }
 
     fun endGame() {
         playSound(GameConfig.end, 0)
@@ -342,22 +358,7 @@ class GameView @JvmOverloads constructor(
 
     override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
 
-    override fun surfaceDestroyed(holder: SurfaceHolder) {
-        if (thread != null) {
-            thread?.setFlag(false)
-        }
-        moveThread?.setNonEndFlag(false)
-        moveThread?.interrupt()
-
-        generateLineThread?.setNonEndFlag(true)
-        generateLineThread?.interrupt()
-
-        characterFlag = false
-        timeThread?.setNonEndFlag(false)
-        timeThread?.interrupt()
-
-        recycleBitmap()
-    }
+    override fun surfaceDestroyed(holder: SurfaceHolder) {}
 
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         val eventType = event?.action
@@ -388,8 +389,7 @@ class GameView @JvmOverloads constructor(
 
             MotionEvent.ACTION_UP -> {}
         }
-
-
         return true
     }
+
 }

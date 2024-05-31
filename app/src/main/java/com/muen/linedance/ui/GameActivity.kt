@@ -24,6 +24,11 @@ class GameActivity : BaseActivity<ActivityGameBinding>() {
         viewBinding.gameView.pause()
     }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        viewBinding.gameView.destroy()
+    }
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK && event!!.repeatCount == 0) {
             val intent = Intent(this, MainActivity::class.java)
