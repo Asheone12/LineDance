@@ -101,6 +101,188 @@ class GameView @JvmOverloads constructor(
 
         iniBitmap()
         initSounds()
+
+        //当surfaceView创建的时候，所有的线程开始运行
+        if (thread != null) {
+            thread?.setFlag(true)
+            thread?.start()
+        }
+    }
+
+    override fun surfaceCreated(holder: SurfaceHolder) { characterFlag = true }
+    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
+    override fun surfaceDestroyed(holder: SurfaceHolder) {}
+
+    fun startDraw(canvas: Canvas?) {
+        //绘画背景
+        canvas!!.drawBitmap(gameBgBitmap!!, 0f, 0f, paint)
+        //画分数图标
+        canvas.drawBitmap(scoreBitmap!!, 50f, 20f, paint)
+        //画计时图标
+        canvas.drawBitmap(timeBitmap!!, (0.333 * screenWidth).toInt().toFloat(), 23f, paint)
+
+        //画暂停按钮图标
+        canvas.drawBitmap(
+            pauseButtonBitmap!!,
+            pauseButtonPosX.toFloat(),
+            GameConfig.pauseButtonY.toFloat(),
+            paint
+        )
+
+        //绘制时间
+        canvas.drawText(
+            BitmapUtil.getTime(timeCount)!!,
+            (0.333 * screenWidth + widgetSize + 20).toInt().toFloat(),
+            (widgetSize / 1.1).toInt().toFloat(), textPaint
+        )
+        //绘制分数
+        canvas.drawText(
+            score.toString() + "", (widgetSize + 70).toFloat(), (widgetSize / 1.1).toInt()
+                .toFloat(), textPaint
+        )
+
+
+        if (timeCount - timeStart >= GameConfig.gap) {
+            characterFlag = true
+            timeStart = GameConfig.infinite
+        }
+        character.draw(canvas, characterFlag)
+        for (l in lines) {
+            l.draw(canvas, l.type)
+        }
+
+        if (pauseFlag) canvas.drawBitmap(pauseBGBitmap!!, 0f, 0f, paint)
+        if (gameOverFlag) {
+            canvas.drawBitmap(gameOverBitmap!!, 0f, 0f, paint)
+            canvas.drawText(
+                "score:" + score + "  time:" + BitmapUtil.getTime(timeCount),
+                (0.25 * screenWidth).toInt().toFloat(),
+                (0.600 * screenHeight).toInt().toFloat(),
+                textPaintResult
+            )
+        }
+        if (systemSecondCurrent < systemSecondStart) {
+            systemSecondCurrent += 60
+        }
+        threadStart()
+    }
+
+    private fun threadStart() {
+        moveThread?.setNonEndFlag(true)
+        moveThread?.setPauseFlag(false)
+        moveThread?.start()
+        generateLineThread?.setNonEndFlag(true)
+        generateLineThread?.setPauseFlag(false)
+        generateLineThread?.start()
+        timeThread?.setNonEndFlag(true)
+        timeThread?.setPauseFlag(false)
+        timeThread?.start()
+    }
+
+    private fun restartGame() {
+        timeCount = 0
+        score = 0
+        systemSecondStart = getSystemCurrentSecond()
+        gameOverFlag = false
+        characterFlag = true
+        breakRecordFlag = false
+        resume()
+    }
+
+    fun pause() {
+        moveThread!!.setPauseFlag(true)
+        generateLineThread!!.setPauseFlag(true)
+        timeThread!!.setPauseFlag(true)
+        pauseFlag = true
+    }
+
+    fun resume() {
+        generateLineThread!!.resumeThread()
+        moveThread!!.resumeThread()
+        timeThread!!.resumeThread()
+        pauseFlag = false
+    }
+
+    fun endGame() {
+        playSound(GameConfig.end, 0)
+        val time: String = getTime()
+        moveThread?.setPauseFlag(true)
+        generateLineThread?.setPauseFlag(true)
+        generateLineThread?.setGenerateTotal(0)
+        timeThread?.setPauseFlag(true)
+        lines.clear()
+        gameOverFlag = true
+    }
+
+    fun destroy() {
+        if (thread != null) {
+            thread?.setFlag(false)
+        }
+        moveThread?.setNonEndFlag(false)
+        moveThread?.interrupt()
+
+        generateLineThread?.setNonEndFlag(true)
+        generateLineThread?.interrupt()
+
+        characterFlag = false
+        timeThread?.setNonEndFlag(false)
+        timeThread?.interrupt()
+
+        recycleBitmap()
+    }
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        val eventType = event?.action
+        val touchPosX: Int
+        val touchPosY: Int
+
+        when (eventType) {
+            MotionEvent.ACTION_DOWN -> {
+                touchPosX = event.rawX.toInt()
+                touchPosY = event.rawY.toInt()
+                playSound(GameConfig.touch, 0)
+                if (gameOverFlag) {
+                    restartGame()
+                } else {
+                    if (pauseFlag) {
+                        pauseFlag = false
+                        this.resume()
+                    } else {
+                        if (touchPosX <= GameConfig.pauseButtonX + widgetSize + 30 && touchPosX >= GameConfig.pauseButtonX && touchPosY <= GameConfig.pauseButtonY + widgetSize + 60 && touchPosY >= GameConfig.pauseButtonY) {
+                            this.pause()
+                        } else {
+                            timeStart = timeCount
+                            characterFlag = false
+                        }
+                    }
+                }
+            }
+
+            MotionEvent.ACTION_UP -> {}
+        }
+        return true
+    }
+
+    fun addScore(score: Int) {
+        this.score += score
+    }
+
+    fun addTimeCount() {
+        timeCount++
+    }
+
+    private fun getTime(): String {
+        val formatter = SimpleDateFormat("MM月dd日HH:mm:ss")
+        val curDate = Date(System.currentTimeMillis())
+        return formatter.format(curDate)
+    }
+
+    fun getSystemCurrentSecond(): Int {
+        val time: String = getTime()
+        val secondCurrent: Int
+        val timeSet = time.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray();
+        secondCurrent = timeSet[2].toInt()
+        return secondCurrent
     }
 
     private fun initSounds() {
@@ -193,60 +375,6 @@ class GameView @JvmOverloads constructor(
         )
     }
 
-    fun startDraw(canvas: Canvas?) {
-        //绘画背景
-        canvas!!.drawBitmap(gameBgBitmap!!, 0f, 0f, paint)
-        //画分数图标
-        canvas.drawBitmap(scoreBitmap!!, 50f, 20f, paint)
-        //画计时图标
-        canvas.drawBitmap(timeBitmap!!, (0.333 * screenWidth).toInt().toFloat(), 23f, paint)
-
-        //画暂停按钮图标
-        canvas.drawBitmap(
-            pauseButtonBitmap!!,
-            pauseButtonPosX.toFloat(),
-            GameConfig.pauseButtonY.toFloat(),
-            paint
-        )
-
-        //绘制时间
-        canvas.drawText(
-            BitmapUtil.getTime(timeCount)!!,
-            (0.333 * screenWidth + widgetSize + 20).toInt().toFloat(),
-            (widgetSize / 1.1).toInt().toFloat(), textPaint
-        )
-        //绘制分数
-        canvas.drawText(
-            score.toString() + "", (widgetSize + 70).toFloat(), (widgetSize / 1.1).toInt()
-                .toFloat(), textPaint
-        )
-
-
-        if (timeCount - timeStart >= GameConfig.gap) {
-            characterFlag = true
-            timeStart = GameConfig.infinite
-        }
-        character.draw(canvas, characterFlag)
-        for (l in lines) {
-            l.draw(canvas, l.type)
-        }
-
-        if (pauseFlag) canvas.drawBitmap(pauseBGBitmap!!, 0f, 0f, paint)
-        if (gameOverFlag) {
-            canvas.drawBitmap(gameOverBitmap!!, 0f, 0f, paint)
-            canvas.drawText(
-                "score:" + score + "  time:" + BitmapUtil.getTime(timeCount),
-                (0.25 * screenWidth).toInt().toFloat(),
-                (0.600 * screenHeight).toInt().toFloat(),
-                textPaintResult
-            )
-        }
-        if (systemSecondCurrent < systemSecondStart) {
-            systemSecondCurrent += 60
-        }
-        threadStart()
-    }
-
     fun recycleBitmap() {
         gameOverBitmap?.recycle()
         scoreBitmap?.recycle()
@@ -259,137 +387,6 @@ class GameView @JvmOverloads constructor(
             iterator?.recycle()
         }
         System.gc()
-    }
-
-    private fun threadStart() {
-        moveThread?.setNonEndFlag(true)
-        moveThread?.setPauseFlag(false)
-        moveThread?.start()
-        generateLineThread?.setNonEndFlag(true)
-        generateLineThread?.setPauseFlag(false)
-        generateLineThread?.start()
-        timeThread?.setNonEndFlag(true)
-        timeThread?.setPauseFlag(false)
-        timeThread?.start()
-    }
-
-    fun addScore(score: Int) {
-        this.score += score
-    }
-
-    fun addTimeCount() {
-        timeCount++
-    }
-
-    private fun getTime(): String {
-        val formatter = SimpleDateFormat("MM月dd日HH:mm:ss")
-        val curDate = Date(System.currentTimeMillis())
-        return formatter.format(curDate)
-    }
-
-    fun getSystemCurrentSecond(): Int {
-        val time: String = getTime()
-        val secondCurrent: Int
-        val timeSet = time.split(":".toRegex()).dropLastWhile { it.isEmpty() }.toTypedArray();
-        secondCurrent = timeSet[2].toInt()
-        return secondCurrent
-    }
-
-    private fun restartGame() {
-        timeCount = 0
-        score = 0
-        systemSecondStart = getSystemCurrentSecond()
-        gameOverFlag = false
-        characterFlag = true
-        breakRecordFlag = false
-        resume()
-    }
-
-    fun pause() {
-        moveThread!!.setPauseFlag(true)
-        generateLineThread!!.setPauseFlag(true)
-        timeThread!!.setPauseFlag(true)
-        pauseFlag = true
-    }
-
-    fun resume() {
-        generateLineThread!!.resumeThread()
-        moveThread!!.resumeThread()
-        timeThread!!.resumeThread()
-        pauseFlag = false
-    }
-
-    fun destroy(){
-        if (thread != null) {
-            thread?.setFlag(false)
-        }
-        moveThread?.setNonEndFlag(false)
-        moveThread?.interrupt()
-
-        generateLineThread?.setNonEndFlag(true)
-        generateLineThread?.interrupt()
-
-        characterFlag = false
-        timeThread?.setNonEndFlag(false)
-        timeThread?.interrupt()
-
-        recycleBitmap()
-    }
-
-    fun endGame() {
-        playSound(GameConfig.end, 0)
-        val time: String = getTime()
-        moveThread?.setPauseFlag(true)
-        generateLineThread?.setPauseFlag(true)
-        generateLineThread?.setGenerateTotal(0)
-        timeThread?.setPauseFlag(true)
-        lines.clear()
-        gameOverFlag = true
-    }
-
-    override fun surfaceCreated(holder: SurfaceHolder) {
-        //当surfaceView创建的时候，所有的线程开始运行
-        if (thread != null) {
-            thread?.setFlag(true)
-            thread?.start()
-        }
-        characterFlag = true
-    }
-
-    override fun surfaceChanged(holder: SurfaceHolder, format: Int, width: Int, height: Int) {}
-
-    override fun surfaceDestroyed(holder: SurfaceHolder) {}
-
-    override fun onTouchEvent(event: MotionEvent?): Boolean {
-        val eventType = event?.action
-        val touchPosX: Int
-        val touchPosY: Int
-
-        when (eventType) {
-            MotionEvent.ACTION_DOWN -> {
-                touchPosX = event.rawX.toInt()
-                touchPosY = event.rawY.toInt()
-                playSound(GameConfig.touch, 0)
-                if (gameOverFlag) {
-                    restartGame()
-                } else {
-                    if (pauseFlag) {
-                        pauseFlag = false
-                        this.resume()
-                    } else {
-                        if (touchPosX <= GameConfig.pauseButtonX + widgetSize + 30 && touchPosX >= GameConfig.pauseButtonX && touchPosY <= GameConfig.pauseButtonY + widgetSize + 60 && touchPosY >= GameConfig.pauseButtonY) {
-                            this.pause()
-                        } else {
-                            timeStart = timeCount
-                            characterFlag = false
-                        }
-                    }
-                }
-            }
-
-            MotionEvent.ACTION_UP -> {}
-        }
-        return true
     }
 
 }
