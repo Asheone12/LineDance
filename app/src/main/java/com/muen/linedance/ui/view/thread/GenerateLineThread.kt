@@ -47,7 +47,7 @@ class GenerateLineThread(gameView: GameView) : Thread() {
                 } catch (e: Exception) {
                 }
                 try {
-                    sleep(GameConfig.GenerateLineSpan)
+                    sleep(GameConfig.generateLineSpan)
                 } catch (e: Exception) {
                 }
             }
