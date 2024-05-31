@@ -1,33 +1,33 @@
 package com.muen.linedance.ui
 
 import android.content.Intent
-import android.os.Bundle
 import android.view.KeyEvent
-import androidx.appcompat.app.AppCompatActivity
-import com.muen.linedance.ui.view.GameView
+import com.muen.linedance.databinding.ActivityGameBinding
+import com.muen.linedance.utils.BaseActivity
 
-class GameActivity : AppCompatActivity() {
-    private lateinit var gameView: GameView
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        gameView = GameView(this)
-        setContentView(gameView)
+class GameActivity : BaseActivity<ActivityGameBinding>() {
+    override fun onCreateViewBinding(): ActivityGameBinding {
+        return ActivityGameBinding.inflate(layoutInflater)
+    }
+
+    override fun initView() {
+        super.initView()
     }
 
     override fun onResume() {
         super.onResume()
-        gameView.resume()
+        viewBinding.gameView.resume()
     }
 
     override fun onPause() {
         super.onPause()
-        gameView.pause()
+        viewBinding.gameView.pause()
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         if (keyCode == KeyEvent.KEYCODE_BACK && event!!.repeatCount == 0) {
             val intent = Intent(this, MainActivity::class.java)
-            gameView.recycleBitmap()
+            viewBinding.gameView.recycleBitmap()
             startActivity(intent)
             finish()
         }
